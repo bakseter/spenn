@@ -164,11 +164,22 @@ func main() {
 
 			c.HTML(200, "transactions.html.tmpl", gin.H{
 				"Transactions": transactionList,
+				"Sum":          sumTransactions(transactions),
 			})
 		})
 	}
 
 	router.Run(":8080")
+}
+
+func sumTransactions(transactions []Transaction) int {
+	sum := 0
+
+	for _, transaction := range transactions {
+		sum += transaction.Amount
+	}
+
+	return sum
 }
 
 type UserInfo struct {
