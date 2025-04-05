@@ -33,9 +33,9 @@ func main() {
 		databaseHost = "localhost"
 	}
 
-	databaseUser := os.Getenv("DATABASE_USER")
-	if databaseUser == "" {
-		panic("DATABASE_USER is not set")
+	databaseUsername := os.Getenv("DATABASE_USERNAME")
+	if databaseUsername == "" {
+		panic("DATABASE_USERNAME is not set")
 	}
 
 	databasePassword := os.Getenv("DATABASE_PASSWORD")
@@ -51,7 +51,7 @@ func main() {
 	dataSourceName := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=5432 sslmode=disable TimeZone=Europe/Oslo",
         databaseHost,
-		databaseUser,
+		databaseUsername,
 		databasePassword,
 		databaseName,
 	)
