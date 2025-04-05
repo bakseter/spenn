@@ -15,6 +15,7 @@ import (
 type TransactionJSON struct {
 	Amount      int    `json:"amount,string"`
 	Description string `json:"description"`
+	UserEmail   string `json:"user_email,omitempty"`
 }
 
 type User struct {
@@ -168,7 +169,15 @@ func main() {
 
 			var transactionList []TransactionJSON
 			for _, transaction := range transactions {
+				// Fetch user email
+				var user User
+				if err := database.First(&user, transaction.UserID).Error; err != nil {
+					c.JSON(500, gin.H{"error": "failed to fetch user"})
+					return
+				}
+
 				transactionList = append(transactionList, TransactionJSON{
+					UserEmail:   user.Email,
 					Amount:      transaction.Amount,
 					Description: transaction.Description,
 				})
