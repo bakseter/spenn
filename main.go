@@ -17,13 +17,13 @@ type TransactionJSON struct {
 	Description string `json:"description"`
 }
 
-type UserDB struct {
+type User struct {
 	gorm.Model
 	Email        string
-	Transactions []TransactionDB
+	Transactions []Transaction
 }
 
-type TransactionDB struct {
+type Transaction struct {
 	gorm.Model
 	Amount      int
 	Description string
@@ -68,7 +68,7 @@ func main() {
 		fmt.Errorf("failed to connect to database: %v", err)
 	}
 
-	database.AutoMigrate(&TransactionDB{}, &UserDB{})
+	database.AutoMigrate(&User{}, &Transaction{})
 
 	api := router.Group("/api")
 	{
@@ -116,11 +116,11 @@ func main() {
 			}
 
 			// Check if user exists in database
-			var user UserDB
+			var user User
 			if err := database.Where("email = ?", userInfo.Email).First(&user).Error; err != nil {
 				if err == gorm.ErrRecordNotFound {
 					// Create user if not exists
-					user = UserDB{
+					user = User{
 						Email: userInfo.Email,
 					}
 					if err := database.Create(&user).Error; err != nil {
@@ -140,7 +140,7 @@ func main() {
 				return
 			}
 
-			dbTransaction := TransactionDB{
+			dbTransaction := Transaction{
 				Amount:      transaction.Amount,
 				Description: transaction.Description,
 				UserID:      user.ID,
@@ -155,7 +155,7 @@ func main() {
 		})
 
 		api.GET("/transactions", func(c *gin.Context) {
-			var transactions []TransactionDB
+			var transactions []Transaction
 			if err := database.Find(&transactions).Error; err != nil {
 				c.JSON(500, gin.H{"error": "failed to fetch transactions"})
 				return
