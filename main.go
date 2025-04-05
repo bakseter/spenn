@@ -22,8 +22,6 @@ type TransactionDB struct {
 }
 
 func main() {
-	gin.SetMode(gin.ReleaseMode)
-
 	router := gin.Default()
 	router.Use(static.Serve("/", static.LocalFile("./static", true)))
     router.LoadHTMLGlob("templates/*")
