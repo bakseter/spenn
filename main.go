@@ -130,8 +130,20 @@ func main() {
 				return
 			}
 
+			// Get user from database
+			var user User
+			if err := database.Where("email = ?", userInfo.Email).First(&user).Error; err != nil {
+				if err == gorm.ErrRecordNotFound {
+					c.JSON(404, gin.H{"error": "user not found"})
+					return
+				} else {
+					c.JSON(500, gin.H{"error": "failed to fetch user"})
+					return
+				}
+			}
+
 			var transactions []Transaction
-			if err := database.Where("user_id = ?", userInfo.User).Find(&transactions).Error; err != nil {
+			if err := database.Where("user_id = ?", user.ID).Find(&transactions).Error; err != nil {
 				c.JSON(500, gin.H{"error": "failed to fetch transactions"})
 				return
 			}
