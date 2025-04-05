@@ -1,0 +1,31 @@
+services:
+  backend:
+    image: ghcr.io/bakseter/spenn/backend:latest
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_HOST=database
+      - DATABASE_NAME=postgres
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=postgres
+    depends_on:
+      database:
+        condition: service_healthy
+    links:
+      - database
+
+  database:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+

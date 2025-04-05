@@ -1,0 +1,6 @@
+{{ range .Transactions }}
+<div class="my-4 p-4 border rounded shadow">
+    <p class="font-bold">{{ .Amount }}</p>
+    <p class="text-sm text-gray-500">{{ .Description }}</p>
+</div>
+{{ end }}

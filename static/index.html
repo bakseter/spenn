@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="nb">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <title>Spenn</title>
+</head>
+
+<body>
+    <div class="p-4">
+        <h1 class="text-3xl font-bold mb-4">Spenn</h1>
+
+        <hr class="my-4">
+
+        <h2 class="text-xl font-bold mb-4">Før inn ny transaksjon</h2>
+
+        <form hx-post="/api/transaction" hx-ext="json-enc" hx-target="#response" hx-swap="innerHTML">
+            <label class="mb-2" for="amount">Beløp:</label>
+            <input class="block border p-2 mb-4" type="number" id="amount" name="amount" required>
+
+            <label class="mb-2" for="description">Beskrivelse:</label>
+            <input class="block border p-2 mb-4" type="text" id="description" name="description" required>
+
+            <button class="bg-blue-500 text-white p-2 rounded" type="submit">Send inn</button>
+        </form>
+
+        <div id="response">
+            <!-- Response will be injected here -->
+        </div>
+
+        <hr class="my-4">
+
+        <h2 class="text-xl font-bold mb-4">Tidligere transaksjoner</h2>
+
+        <div id="transactions" hx-get="/api/transactions" hx-trigger="load" hx-target="#transactions" hx-swap="innerHTML">
+            <!-- Transactions will be loaded here -->
+        </div>
+    </div>
+</body>
+
+</html>
