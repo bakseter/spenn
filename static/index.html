@@ -18,7 +18,7 @@
 
         <hr class="my-4">
 
-        <h2 class="text-xl font-bold mb-4">Før inn ny transaksjon</h2>
+        <h2 class="text-xl font-bold mb-4">Ny transaksjon</h2>
 
         <form hx-post="/api/transaction" hx-ext="json-enc" hx-target="#response" hx-swap="innerHTML">
             <label class="mb-2" for="amount">Beløp:</label>
@@ -35,8 +35,6 @@
         </div>
 
         <hr class="my-4">
-
-        <h2 class="text-xl font-bold mb-4">Tidligere transaksjoner</h2>
 
         <div id="transactions" hx-get="/api/transactions" hx-trigger="load" hx-target="#transactions" hx-swap="innerHTML">
             <!-- Transactions will be loaded here -->

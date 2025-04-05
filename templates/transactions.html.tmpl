@@ -1,7 +1,17 @@
-<h3 class="text-2xl font-bold mb-4">Sum: {{ .Sum }}</h3>
+<h3 class="text-xl font-bold mb-4">Sum: {{ .Sum }} NOK</h3>
 {{ range .Transactions }}
-<div class="my-4 p-4 border rounded shadow{{  if lt .Amount 0 }} bg-red-100{{ else }} bg-green-100{{ end }}">
-    <p class="font-bold">{{ .Amount }} NOK</p>
-    <p class="text-sm text-gray-500">{{ .Description }}</p>
+<div id="transaction-{{ .ID }}" class="flex max-w-md my-4 p-4 border rounded shadow{{  if lt .Amount 0 }} bg-red-100{{ else }} bg-green-100{{ end }}">
+    <div class="w-1/2">
+        <p class="font-bold">{{ .Amount }} NOK</p>
+        <p class="text-gray-400">{{ .Description }}</p>
+    </div>
+    <div class="w-1/2">
+        <p class="text-gray-400">{{ .UserEmail }}</p>
+    </div>
+    <button class="text-red-500 hover:text-red-700 relative top-0 right-0 mt-2 mr-2" hx-delete="/api/transaction/{{ .ID }}" hx-target="#transaction-{{ .ID }}" hx-swap="outerHTML">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+    </button>
 </div>
 {{ end }}

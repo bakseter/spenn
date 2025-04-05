@@ -13,6 +13,7 @@ import (
 )
 
 type TransactionJSON struct {
+	ID          uint   `json:"id,omitempty"`
 	Amount      int    `json:"amount,string"`
 	Description string `json:"description"`
 	UserEmail   string `json:"user_email,omitempty"`
@@ -156,6 +157,7 @@ func main() {
 			var transactionList []TransactionJSON
 			for _, transaction := range transactions {
 				transactionList = append(transactionList, TransactionJSON{
+					ID:          transaction.ID,
 					UserEmail:   userInfo.Email,
 					Amount:      transaction.Amount,
 					Description: transaction.Description,
@@ -166,6 +168,46 @@ func main() {
 				"Transactions": transactionList,
 				"Sum":          sumTransactions(transactions),
 			})
+		})
+
+		api.DELETE("/transaction/:id", func(c *gin.Context) {
+			userInfo, err := getUserInfo(c)
+			if err != nil {
+				c.JSON(401, gin.H{"error": err.Error()})
+				return
+			}
+
+			var transaction Transaction
+			if err := database.Where("id = ?", c.Param("id")).First(&transaction).Error; err != nil {
+				if err == gorm.ErrRecordNotFound {
+					c.JSON(404, gin.H{"error": "transaction not found"})
+					return
+				} else {
+					c.JSON(500, gin.H{"error": "failed to fetch transaction"})
+					return
+				}
+			}
+
+			// Check if the user owns the transaction
+			var user User
+			if err := database.Where("id = ?", transaction.UserID).First(&user).Error; err != nil {
+				c.JSON(500, gin.H{"error": "failed to fetch user"})
+				return
+			}
+
+			if user.Email != userInfo.Email {
+				c.JSON(403, gin.H{"error": "forbidden"})
+				return
+			}
+
+			// Delete the transaction
+			if err := database.Delete(&transaction).Error; err != nil {
+				c.JSON(500, gin.H{"error": "failed to delete transaction"})
+				return
+			}
+
+			c.Header("Content-Type", "text/html")
+			c.String(200, "")
 		})
 	}
 
@@ -188,6 +230,13 @@ type UserInfo struct {
 }
 
 func getUserInfo(c *gin.Context) (*UserInfo, error) {
+	if os.Getenv("DEV") == "true" {
+		return &UserInfo{
+			User:  "test",
+			Email: "test@example.com",
+		}, nil
+	}
+
 	cookie, err := c.Cookie("_oauth2_proxy")
 	if err != nil {
 		return nil, err
