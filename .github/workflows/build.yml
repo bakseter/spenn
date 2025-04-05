@@ -17,7 +17,7 @@ jobs:
       security-events: write
       packages: write
     env:
-      IMAGE_NAME: 'ghcr.io/${{ github.repository }}/backend'
+      IMAGE_NAME: 'ghcr.io/${{ github.repository }}'
       TRIVY_SARIF: 'trivy-results.sarif'
     steps:
       - name: Checkout repository
