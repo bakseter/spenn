@@ -80,39 +80,9 @@ func main() {
 		})
 
 		api.POST("/transaction", func(c *gin.Context) {
-			cookie, err := c.Cookie("_oauth2_proxy")
+			userInfo, err := getUserInfo(c)
 			if err != nil {
-				c.JSON(401, gin.H{"error": "unauthorized"})
-				return
-			}
-
-			// Send cookie to auth endpoint to get userinfo
-			httpClient := &http.Client{}
-			req, err := http.NewRequest("GET", "https://sso.bakseter.net/oauth2/userinfo", nil)
-			if err != nil {
-				c.JSON(500, gin.H{"error": "failed to create request"})
-				return
-			}
-
-			req.Header.Set("Cookie", "_oauth2_proxy="+cookie)
-			resp, err := httpClient.Do(req)
-			if err != nil {
-				c.JSON(500, gin.H{"error": "failed to get userinfo"})
-				return
-			}
-
-			defer resp.Body.Close()
-			if resp.StatusCode != 200 {
-				c.JSON(401, gin.H{"error": "unauthorized"})
-				return
-			}
-
-			var userInfo struct {
-				User  string `json:"user"`
-				Email string `json:"email"`
-			}
-			if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
-				c.JSON(500, gin.H{"error": "failed to decode userinfo"})
+				c.JSON(401, gin.H{"error": err.Error()})
 				return
 			}
 
@@ -121,9 +91,7 @@ func main() {
 			if err := database.Where("email = ?", userInfo.Email).First(&user).Error; err != nil {
 				if err == gorm.ErrRecordNotFound {
 					// Create user if not exists
-					user = User{
-						Email: userInfo.Email,
-					}
+					user = User{Email: userInfo.Email}
 					if err := database.Create(&user).Error; err != nil {
 						c.JSON(500, gin.H{"error": "failed to create user"})
 						return
@@ -156,8 +124,14 @@ func main() {
 		})
 
 		api.GET("/transactions", func(c *gin.Context) {
+			userInfo, err := getUserInfo(c)
+			if err != nil {
+				c.JSON(401, gin.H{"error": err.Error()})
+				return
+			}
+
 			var transactions []Transaction
-			if err := database.Find(&transactions).Error; err != nil {
+			if err := database.Where("user_id = ?", userInfo.User).Find(&transactions).Error; err != nil {
 				c.JSON(500, gin.H{"error": "failed to fetch transactions"})
 				return
 			}
@@ -169,15 +143,8 @@ func main() {
 
 			var transactionList []TransactionJSON
 			for _, transaction := range transactions {
-				// Fetch user email
-				var user User
-				if err := database.First(&user, transaction.UserID).Error; err != nil {
-					c.JSON(500, gin.H{"error": "failed to fetch user"})
-					return
-				}
-
 				transactionList = append(transactionList, TransactionJSON{
-					UserEmail:   user.Email,
+					UserEmail:   userInfo.Email,
 					Amount:      transaction.Amount,
 					Description: transaction.Description,
 				})
@@ -190,4 +157,41 @@ func main() {
 	}
 
 	router.Run(":8080")
+}
+
+type UserInfo struct {
+	User  string `json:"user"`
+	Email string `json:"email"`
+}
+
+func getUserInfo(c *gin.Context) (*UserInfo, error) {
+	cookie, err := c.Cookie("_oauth2_proxy")
+	if err != nil {
+		return nil, err
+	}
+
+	// Send cookie to auth endpoint to get userinfo
+	httpClient := &http.Client{}
+	req, err := http.NewRequest("GET", "https://sso.bakseter.net/oauth2/userinfo", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Cookie", "_oauth2_proxy="+cookie)
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, err
+	}
+
+	var userInfo UserInfo
+	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+		return nil, err
+	}
+
+	return &userInfo, nil
 }
