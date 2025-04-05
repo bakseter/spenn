@@ -68,7 +68,7 @@ func main() {
 		fmt.Errorf("failed to connect to database: %v", err)
 	}
 
-	database.AutoMigrate(&TransactionDB{})
+	database.AutoMigrate(&TransactionDB{}, &UserDB{})
 
 	api := router.Group("/api")
 	{
