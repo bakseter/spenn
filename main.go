@@ -153,7 +153,7 @@ func main() {
 
 			if len(transactions) == 0 {
 				c.Header("Content-Type", "text/html")
-				c.String(200, "<p class=\"italic\">No transactions found</p>")
+				c.String(200, "<p class=\"italic\">Ingen transaksjoner</p>")
 				return
 			}
 
