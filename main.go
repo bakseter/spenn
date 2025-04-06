@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -120,8 +121,8 @@ func main() {
 				return
 			}
 
-			c.Header("Content-Type", "text/html")
-			c.String(200, "<p>transaction received :)</p>")
+			c.Header("HX-Trigger", "reload-transactions")
+			c.Status(http.StatusNoContent)
 		})
 
 		api.GET("/transactions", func(c *gin.Context) {
@@ -135,7 +136,8 @@ func main() {
 			var user User
 			if err := database.Where("email = ?", userInfo.Email).First(&user).Error; err != nil {
 				if err == gorm.ErrRecordNotFound {
-					c.JSON(404, gin.H{"error": "user not found"})
+					c.Header("Content-Type", "text/html")
+					c.String(200, "<p class=\"italic\">Ingen transaksjoner</p>")
 					return
 				} else {
 					c.JSON(500, gin.H{"error": "failed to fetch user"})
@@ -150,7 +152,8 @@ func main() {
 			}
 
 			if len(transactions) == 0 {
-				c.JSON(200, gin.H{"message": "no transactions found"})
+				c.Header("Content-Type", "text/html")
+				c.String(200, "<p class=\"italic\">No transactions found</p>")
 				return
 			}
 
@@ -206,8 +209,8 @@ func main() {
 				return
 			}
 
-			c.Header("Content-Type", "text/html")
-			c.String(200, "")
+			c.Header("HX-Trigger", "reload-transactions")
+			c.Status(http.StatusNoContent)
 		})
 	}
 
@@ -237,6 +240,11 @@ func getUserInfo(c *gin.Context) (*UserInfo, error) {
 		}, nil
 	}
 
+	oauth2UserinfoEndpoint := os.Getenv("OAUTH2_USERINFO_ENDPOINT")
+	if oauth2UserinfoEndpoint == "" {
+		return nil, errors.New("OAUTH2_USERINFO_ENDPOINT is not set")
+	}
+
 	cookie, err := c.Cookie("_oauth2_proxy")
 	if err != nil {
 		return nil, err
@@ -244,7 +252,7 @@ func getUserInfo(c *gin.Context) (*UserInfo, error) {
 
 	// Send cookie to auth endpoint to get userinfo
 	httpClient := &http.Client{}
-	req, err := http.NewRequest("GET", "https://sso.bakseter.net/oauth2/userinfo", nil)
+	req, err := http.NewRequest("GET", oauth2UserinfoEndpoint, nil)
 	if err != nil {
 		return nil, err
 	}

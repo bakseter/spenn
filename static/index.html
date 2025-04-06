@@ -20,7 +20,7 @@
 
         <h2 class="text-xl font-bold mb-4">Ny transaksjon</h2>
 
-        <form hx-post="/api/transaction" hx-ext="json-enc" hx-target="#response" hx-swap="innerHTML">
+        <form hx-post="/api/transaction" hx-ext="json-enc">
             <label class="mb-2" for="amount">Beløp:</label>
             <input class="block border p-2 mb-4" type="number" id="amount" name="amount" required>
 
@@ -30,13 +30,9 @@
             <button class="bg-blue-500 text-white p-2 rounded" type="submit">Send inn</button>
         </form>
 
-        <div id="response">
-            <!-- Response will be injected here -->
-        </div>
-
         <hr class="my-4">
 
-        <div id="transactions" hx-get="/api/transactions" hx-trigger="load" hx-target="#transactions" hx-swap="innerHTML">
+        <div id="transactions" hx-get="/api/transactions" hx-trigger="load, reload-transactions from:body" hx-target="#transactions" hx-swap="innerHTML">
             <!-- Transactions will be loaded here -->
         </div>
     </div>
