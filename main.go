@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"slices"
 
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
@@ -166,6 +167,8 @@ func main() {
 					Description: transaction.Description,
 				})
 			}
+
+			slices.Reverse(transactionList)
 
 			c.HTML(200, "transactions.html.tmpl", gin.H{
 				"Transactions": transactionList,
