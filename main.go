@@ -47,31 +47,31 @@ func main() {
 				return []string{host}
 			}
 
-			log.Print(oauth2URL.Scheme + "://" + oauth2URL.Host)
-
 			return []string{host, oauth2URL.Scheme + "://" + oauth2URL.Host}
 		}()
 
+		headers := []string{
+			"Origin",
+			"Content-Type",
+			"Accept",
+			"Authorization",
+			"X-Auth-Request-User",
+			"X-Auth-Request-Email",
+			"X-Auth-Requiest-Groups",
+			"X-Auth-Request-Access-Token",
+			"X-Auth-Request-Preferred-Username",
+			"X-Forwarded-Access-Token",
+			"X-Forwarded-User",
+			"X-Forwarded-Email",
+			"X-Forwarded-Preferred-Username",
+			"X-Forwarded-Groups",
+		}
+
 		router.Use(cors.New(cors.Config{
-			AllowOrigins: allowOrigins,
-			AllowMethods: []string{"GET", "PUT", "POST", "DELETE"},
-			AllowHeaders: []string{
-				"Origin",
-				"Content-Type",
-				"Accept",
-				"Authorization",
-				"X-Auth-Request-User",
-				"X-Auth-Request-Email",
-				"X-Auth-Requiest-Groups",
-				"X-Auth-Request-Access-Token",
-				"X-Auth-Request-Preferred-Username",
-				"X-Forwarded-Access-Token",
-				"X-Forwarded-User",
-				"X-Forwarded-Email",
-				"X-Forwarded-Preferred-Username",
-				"X-Forwarded-Groups",
-			},
-			ExposeHeaders:    []string{"Content-Length"},
+			AllowOrigins:     allowOrigins,
+			AllowMethods:     []string{"GET", "PUT", "POST", "DELETE"},
+			AllowHeaders:     headers,
+			ExposeHeaders:    headers,
 			AllowCredentials: true,
 			MaxAge:           12 * time.Hour,
 		}))
