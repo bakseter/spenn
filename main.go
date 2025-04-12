@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/url"
 	"os"
 	"time"
 
@@ -29,9 +30,30 @@ func main() {
 	}
 
 	if !dev {
-		host := os.Getenv("HOST")
+		allowOrigins := func() []string {
+			host := os.Getenv("HOST")
+			if host == "" {
+				log.Fatal("HOST environment variable is not set")
+			}
+
+			oauth2UserinfoEndpoint := os.Getenv("OAUTH2_USERINFO_ENDPOINT")
+			oauth2URL, err := url.Parse(oauth2UserinfoEndpoint)
+			if oauth2UserinfoEndpoint == "" || err != nil {
+				log.Printf(
+					"failed to parse OAUTH2_USERINFO_ENDPOINT, not adding it to AllowOrigins: %v",
+					err,
+				)
+
+				return []string{host}
+			}
+
+			log.Print(oauth2URL.Scheme + "://" + oauth2URL.Host)
+
+			return []string{host, oauth2URL.Scheme + "://" + oauth2URL.Host}
+		}()
+
 		router.Use(cors.New(cors.Config{
-			AllowOrigins: []string{host},
+			AllowOrigins: allowOrigins,
 			AllowMethods: []string{"GET", "PUT", "POST", "DELETE"},
 			AllowHeaders: []string{
 				"Origin",
