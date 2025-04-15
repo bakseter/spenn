@@ -1,6 +1,6 @@
 FROM golang:alpine AS build
 
-ENV GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+ENV GO111MODULE=on CGO_ENABLED=0 GOOS=linux
 
 WORKDIR /app
 
