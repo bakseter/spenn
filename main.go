@@ -24,6 +24,7 @@ func main() {
 	router := gin.Default()
 	router.Use(static.Serve("/", static.LocalFile("./static", true)))
 	router.LoadHTMLGlob("templates/*")
+    router.SetTrustedProxies(nil)
 
 	if !dev {
 		gin.SetMode(gin.ReleaseMode)

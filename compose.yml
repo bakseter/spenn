@@ -15,6 +15,17 @@ services:
         condition: service_healthy
     links:
       - database
+    develop:
+      watch:
+        - action: sync
+          path: ./static
+          target: /app/static
+        - action: sync
+          path: ./templates
+          target: /app/templates
+        - action: rebuild
+          path: '**/*.go'
+          target: /app
 
   database:
     image: postgres:latest
