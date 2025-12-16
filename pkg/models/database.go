@@ -31,7 +31,7 @@ func InitializeDatabase() (*gorm.DB, error) {
 	}
 
 	dataSourceName := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=5432 sslmode=disable TimeZone=Europe/Oslo",
+		"host=%s user=%s password=%s dbname=%s port=5432 sslmode=disable TimeZone=UTC",
 		databaseHost,
 		databaseUsername,
 		databasePassword,
