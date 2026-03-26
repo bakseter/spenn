@@ -1,109 +1,38 @@
 package main
 
 import (
-	"log"
-	"net/url"
-	"os"
-	"time"
+	"context"
 
-	"github.com/bakseter/spenn/pkg/models"
-	"github.com/bakseter/spenn/pkg/routes"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/contrib/static"
+	"github.com/bakseter/spenn/pkg/api"
+	"github.com/bakseter/spenn/pkg/config"
+	"github.com/sirupsen/logrus"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 func main() {
-	dev := func() bool {
-		dev_ := os.Getenv("DEV")
+	ctx := context.Background()
 
-		return dev_ == "true"
+	log := logrus.New()
+	log.SetFormatter(&logrus.JSONFormatter{})
+
+	conf, shutdownLogs, err := config.New(ctx, log)
+	if err != nil {
+		log.Errorf("failed to load config: %v", err)
+
+		return
+	}
+
+	defer func() {
+		if err := shutdownLogs(ctx); err != nil {
+			log.Errorf("failed to shutdown log provider: %v", err)
+		}
 	}()
 
-	router := gin.Default()
-	router.Use(static.Serve("/", static.LocalFile("./static", true)))
-	router.LoadHTMLGlob("templates/*")
-    router.SetTrustedProxies(nil)
-
-	if !dev {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
-	if !dev {
-		allowOrigins := func() []string {
-			host := os.Getenv("HOST")
-			if host == "" {
-				log.Fatal("HOST environment variable is not set")
-			}
-
-			oauth2UserinfoEndpoint := os.Getenv("OAUTH2_USERINFO_ENDPOINT")
-			oauth2URL, err := url.Parse(oauth2UserinfoEndpoint)
-			if oauth2UserinfoEndpoint == "" || err != nil {
-				log.Printf(
-					"failed to parse OAUTH2_USERINFO_ENDPOINT, not adding it to AllowOrigins: %v",
-					err,
-				)
-
-				return []string{host}
-			}
-
-			return []string{host, oauth2URL.Scheme + "://" + oauth2URL.Host}
-		}()
-
-		headers := []string{
-			"Origin",
-			"Content-Type",
-			"Accept",
-			"Authorization",
-			"X-Auth-Request-User",
-			"X-Auth-Request-Email",
-			"X-Auth-Requiest-Groups",
-			"X-Auth-Request-Access-Token",
-			"X-Auth-Request-Preferred-Username",
-			"X-Forwarded-Access-Token",
-			"X-Forwarded-User",
-			"X-Forwarded-Email",
-			"X-Forwarded-Preferred-Username",
-			"X-Forwarded-Groups",
-		}
-
-		router.Use(cors.New(cors.Config{
-			AllowOrigins:     allowOrigins,
-			AllowMethods:     []string{"GET", "PUT", "POST", "DELETE"},
-			AllowHeaders:     headers,
-			ExposeHeaders:    headers,
-			AllowCredentials: true,
-			MaxAge:           12 * time.Hour,
-		}))
-	}
-
-	database, err := models.InitializeDatabase()
+	err = api.Start(conf, log)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = database.AutoMigrate(&models.User{}, &models.Transaction{})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	api := router.Group("/api")
-	{
-		api.GET("/status", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"status": "ok",
-			})
-		})
-
-		api.GET("/transactions", withDatabase(routes.GetAllTransactions, database))
-		api.POST("/transaction", withDatabase(routes.PostTransaction, database))
-		api.DELETE("/transaction/:id", withDatabase(routes.DeleteTransaction, database))
-	}
-
-	err = router.Run(":8080")
-	if err != nil {
-		log.Fatal(err)
+		log.Errorf("failed to start API: %v", err)
 	}
 }
 

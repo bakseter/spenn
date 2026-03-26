@@ -3,13 +3,15 @@ services:
     image: ghcr.io/bakseter/spenn/backend:latest
     build: .
     ports:
-      - "8080:8080"
+      - '8080:8080'
     environment:
       - DATABASE_HOST=database
       - DATABASE_NAME=postgres
       - DATABASE_USERNAME=postgres
       - DATABASE_PASSWORD=postgres
-      - DEV=true
+      - LOCAL=true
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
       database:
         condition: service_healthy
@@ -27,10 +29,19 @@ services:
           path: '**/*.go'
           target: /app
 
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ['--config=/etc/otelcol-contrib/config.yaml']
+    volumes:
+      - ./otelcol.yaml:/etc/otelcol-contrib/config.yaml
+    ports:
+      - '4317:4317'
+      - '4318:4318'
+
   database:
     image: postgres:latest
     ports:
-      - "5432:5432"
+      - '5432:5432'
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
@@ -40,4 +51,3 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-

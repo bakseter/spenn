@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spenn
+  namespace: spenn
+  annotations:
+    keel.sh/match-tag: 'true'
+    keel.sh/policy: force
+    keel.sh/trigger: poll
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: spenn
+  template:
+    metadata:
+      labels:
+        app: spenn
+        logs.bakseter.net/scrape: 'false'
+    spec:
+      containers:
+        - name: spenn
+          image: ghcr.io/bakseter/spenn:latest
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: HOST
+              value: https://spenn.tail79d70a.ts.net
+            - name: GIN_MODE
+              value: release
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: spenn-database-app
+                  key: host
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: spenn-database-app
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: spenn-database-app
+                  key: password
+            - name: DATABASE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: spenn-database-app
+                  key: dbname
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://monitoring-alloy.monitoring.svc.cluster.local:4317
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: grpc
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - spenn
+              topologyKey: bakseter.net/physical-node
+      securityContext:
+        fsGroup: 65534
+        runAsNonRoot: true
+        runAsGroup: 65534
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+        supplementalGroups:
+          - 65534

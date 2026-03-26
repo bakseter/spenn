@@ -11,26 +11,15 @@ COPY . .
 RUN go build -o ./out/executable .
 
 
-FROM alpine:latest
+FROM scratch
 
-WORKDIR /app
-
-RUN apk update && \
-    apk upgrade --no-cache
-
-RUN addgroup application-group --gid 1001 && \
-    adduser application-user --uid 1001 \
-        --ingroup application-group \
-        --disabled-password
-
-COPY --from=build /app/out .
-
-RUN chown --recursive application-user .
-USER application-user
-
-EXPOSE 8080
+COPY --from=build /app/out/executable /executable
 
 COPY static ./static
 COPY templates ./templates
 
-ENTRYPOINT ["./executable"]
+USER 65534:65534
+
+EXPOSE 8080
+
+ENTRYPOINT ["/executable"]

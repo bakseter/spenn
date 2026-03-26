@@ -1,41 +1,102 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="nb">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script
+            src="https://unpkg.com/htmx.org@2.0.4"
+            integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+            crossorigin="anonymous"
+        ></script>
+        <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+        <script src="https://cdn.tailwindcss.com"></script>
 
-    <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+        <title>Spenn</title>
+    </head>
 
-    <title>Spenn</title>
-</head>
+    <body class="min-h-screen bg-slate-50 text-slate-800">
+        <main class="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+            <div class="mb-8">
+                <h1 class="text-4xl font-bold tracking-tight text-slate-900">
+                    Spenn
+                </h1>
+                <p class="mt-2 text-sm text-slate-500">
+                    Hold oversikt over transaksjonene dine.
+                </p>
+            </div>
 
-<body>
-    <div class="p-4">
-        <h1 class="text-3xl font-bold mb-4">Spenn</h1>
+            <div class="grid gap-8 lg:grid-cols-[360px_1fr]">
+                <section
+                    class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+                >
+                    <div class="mb-6">
+                        <h2 class="text-xl font-semibold text-slate-900">
+                            Ny transaksjon
+                        </h2>
+                        <p class="mt-1 text-sm text-slate-500">
+                            Legg inn et beløp og en beskrivelse.
+                        </p>
+                    </div>
 
-        <hr class="my-4">
+                    <form
+                        class="space-y-5"
+                        hx-post="/api/transaction"
+                        hx-ext="json-enc"
+                    >
+                        <div>
+                            <label
+                                class="mb-2 block text-sm font-medium text-slate-700"
+                                for="amount"
+                                >Beløp</label
+                            >
+                            <input
+                                class="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 shadow-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-200"
+                                type="number"
+                                id="amount"
+                                name="amount"
+                                required
+                            />
+                        </div>
 
-        <h2 class="text-xl font-bold mb-4">Ny transaksjon</h2>
+                        <div>
+                            <label
+                                class="mb-2 block text-sm font-medium text-slate-700"
+                                for="description"
+                                >Beskrivelse</label
+                            >
+                            <input
+                                class="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 shadow-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-200"
+                                type="text"
+                                id="description"
+                                name="description"
+                                required
+                            />
+                        </div>
 
-        <form hx-post="/api/transaction" hx-ext="json-enc">
-            <label class="mb-2" for="amount">Beløp:</label>
-            <input class="block border p-2 mb-4" type="number" id="amount" name="amount" required>
+                        <button
+                            class="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-300"
+                            type="submit"
+                        >
+                            Send inn
+                        </button>
+                    </form>
+                </section>
 
-            <label class="mb-2" for="description">Beskrivelse:</label>
-            <input class="block border p-2 mb-4" type="text" id="description" name="description" required>
-
-            <button class="bg-blue-500 text-white p-2 rounded" type="submit">Send inn</button>
-        </form>
-
-        <hr class="my-4">
-
-        <div id="transactions" hx-get="/api/transactions" hx-trigger="load, reload-transactions from:body" hx-target="#transactions" hx-swap="innerHTML">
-            <!-- Transactions will be loaded here -->
-        </div>
-    </div>
-</body>
-
+                <section
+                    class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+                >
+                    <div
+                        id="transactions"
+                        hx-get="/api/transactions"
+                        hx-trigger="load, reload-transactions from:body"
+                        hx-target="#transactions"
+                        hx-swap="innerHTML"
+                    >
+                        <!-- Transactions will be loaded here -->
+                    </div>
+                </section>
+            </div>
+        </main>
+    </body>
 </html>

@@ -5,11 +5,27 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/bakseter/spenn/pkg/config"
+	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func InitializeDatabase() (*gorm.DB, error) {
+func ConfigureDatabase(conf *config.Config) (*gorm.DB, error) {
+	database, err := initializeDatabase()
+	if err != nil {
+		return nil, err
+	}
+
+	err = migrateDatabase(database)
+	if err != nil {
+		return nil, fmt.Errorf("failed to migrate database: %w", err)
+	}
+
+	return database, nil
+}
+
+func initializeDatabase() (*gorm.DB, error) {
 	databaseHost := os.Getenv("DATABASE_HOST")
 	if databaseHost == "" {
 		databaseHost = "localhost"
@@ -40,8 +56,26 @@ func InitializeDatabase() (*gorm.DB, error) {
 
 	database, err := gorm.Open(postgres.Open(dataSourceName), &gorm.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %v", err)
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	return database, nil
+}
+
+func migrateDatabase(database *gorm.DB) error {
+	err := database.AutoMigrate(
+		&User{},
+		&Transaction{},
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func WithDatabase(fn func(*gin.Context, *gorm.DB), database *gorm.DB) func(*gin.Context) {
+	return func(ctx *gin.Context) {
+		fn(ctx, database)
+	}
 }

@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: spenn
+  namespace: spenn
+  annotations:
+    tailscale.com/tags: 'tag:k8s,tag:media'
+spec:
+  ingressClassName: tailscale
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: spenn
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - spenn

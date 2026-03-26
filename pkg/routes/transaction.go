@@ -16,27 +16,33 @@ type TransactionJSON struct {
 	UserEmail   string `json:"user_email,omitempty"`
 }
 
-func PostTransaction(c *gin.Context, database *gorm.DB) {
-	userInfo, err := getUserInfo(c)
+func TransactionRoutes(router *gin.RouterGroup, database *gorm.DB) {
+	router.GET("/transactions", models.WithDatabase(getAllTransactions, database))
+	router.POST("/transaction", models.WithDatabase(postTransaction, database))
+	router.DELETE("/transaction/:id", models.WithDatabase(deleteTransaction, database))
+}
+
+func postTransaction(ctx *gin.Context, database *gorm.DB) {
+	tailscaleUser, err := getTailscaleUser(ctx)
 	if err != nil {
-		c.JSON(401, gin.H{"error": err.Error()})
+		ctx.JSON(401, gin.H{"error": err.Error()})
 
 		return
 	}
 
 	// Check if user exists in database
 	var user models.User
-	if err := database.Where("email = ?", userInfo.Email).First(&user).Error; err != nil {
+	if err := database.Where("username = ?", tailscaleUser.Login).First(&user).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			// Create user if not exists
-			user = models.User{Email: userInfo.Email}
+			user = models.User{Username: tailscaleUser.Login}
 			if err := database.Create(&user).Error; err != nil {
-				c.JSON(500, gin.H{"error": "failed to create user"})
+				ctx.JSON(500, gin.H{"error": "failed to create user"})
 
 				return
 			}
 		} else {
-			c.JSON(500, gin.H{"error": "failed to fetch user"})
+			ctx.JSON(500, gin.H{"error": "failed to fetch user"})
 
 			return
 		}
@@ -44,8 +50,8 @@ func PostTransaction(c *gin.Context, database *gorm.DB) {
 
 	// User exists, proceed with transaction
 	var transaction TransactionJSON
-	if err := c.ShouldBindJSON(&transaction); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+	if err := ctx.ShouldBindJSON(&transaction); err != nil {
+		ctx.JSON(400, gin.H{"error": err.Error()})
 
 		return
 	}
@@ -56,16 +62,72 @@ func PostTransaction(c *gin.Context, database *gorm.DB) {
 		UserID:      user.ID,
 	}
 	if err := database.Create(&dbTransaction).Error; err != nil {
-		c.JSON(500, gin.H{"error": "failed to save transaction"})
+		ctx.JSON(500, gin.H{"error": "failed to save transaction"})
 
 		return
 	}
 
-	c.Header("HX-Trigger", "reload-transactions")
-	c.Status(http.StatusNoContent)
+	ctx.Header("HX-Trigger", "reload-transactions")
+	ctx.Status(http.StatusNoContent)
 }
 
-func PatchTransaction(c *gin.Context, database *gorm.DB) {
+func getAllTransactions(ctx *gin.Context, database *gorm.DB) {
+	tailscaleUser, err := getTailscaleUser(ctx)
+	if err != nil {
+		ctx.JSON(401, gin.H{"error": err.Error()})
+
+		return
+	}
+
+	// Get user from database
+	var user models.User
+	if err := database.Where("username = ?", tailscaleUser.Login).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			ctx.Header("Content-Type", "text/html")
+			ctx.String(200, "<p class=\"italic\">Ingen transaksjoner</p>")
+
+			return
+		} else {
+			ctx.JSON(500, gin.H{"error": "failed to fetch user"})
+
+			return
+		}
+	}
+
+	var transactions []models.Transaction
+	if err := database.Where("user_id = ?", user.ID).Find(&transactions).Error; err != nil {
+		ctx.JSON(500, gin.H{"error": "failed to fetch transactions"})
+
+		return
+	}
+
+	if len(transactions) == 0 {
+		ctx.Header("Content-Type", "text/html")
+		ctx.String(200, "<p class=\"italic\">Ingen transaksjoner</p>")
+
+		return
+	}
+
+	var transactionList []TransactionJSON
+	for _, transaction := range transactions {
+		transactionList = append(transactionList, TransactionJSON{
+			ID:          transaction.ID,
+			UserEmail:   tailscaleUser.Login,
+			Amount:      transaction.Amount,
+			Description: transaction.Description,
+		})
+	}
+
+	slices.Reverse(transactionList)
+
+	ctx.HTML(200, "transactions.html.tmpl", gin.H{
+		"Transactions": transactionList,
+		"Sum":          models.SumTransactions(transactions),
+	})
+}
+
+/*
+func patchTransaction(c *gin.Context, database *gorm.DB) {
 	userInfo, err := getUserInfo(c)
 	if err != nil {
 		c.JSON(401, gin.H{"error": err.Error()})
@@ -115,77 +177,24 @@ func PatchTransaction(c *gin.Context, database *gorm.DB) {
 	c.Header("HX-Trigger", "reload-transactions")
 	c.Status(http.StatusNoContent)
 }
+*/
 
-func GetAllTransactions(c *gin.Context, database *gorm.DB) {
-	userInfo, err := getUserInfo(c)
+func deleteTransaction(ctx *gin.Context, database *gorm.DB) {
+	tailscaleUser, err := getTailscaleUser(ctx)
 	if err != nil {
-		c.JSON(401, gin.H{"error": err.Error()})
+		ctx.JSON(401, gin.H{"error": err.Error()})
 
-		return
-	}
-
-	// Get user from database
-	var user models.User
-	if err := database.Where("email = ?", userInfo.Email).First(&user).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.Header("Content-Type", "text/html")
-			c.String(200, "<p class=\"italic\">Ingen transaksjoner</p>")
-
-			return
-		} else {
-			c.JSON(500, gin.H{"error": "failed to fetch user"})
-
-			return
-		}
-	}
-
-	var transactions []models.Transaction
-	if err := database.Where("user_id = ?", user.ID).Find(&transactions).Error; err != nil {
-		c.JSON(500, gin.H{"error": "failed to fetch transactions"})
-
-		return
-	}
-
-	if len(transactions) == 0 {
-		c.Header("Content-Type", "text/html")
-		c.String(200, "<p class=\"italic\">Ingen transaksjoner</p>")
-
-		return
-	}
-
-	var transactionList []TransactionJSON
-	for _, transaction := range transactions {
-		transactionList = append(transactionList, TransactionJSON{
-			ID:          transaction.ID,
-			UserEmail:   userInfo.Email,
-			Amount:      transaction.Amount,
-			Description: transaction.Description,
-		})
-	}
-
-	slices.Reverse(transactionList)
-
-	c.HTML(200, "transactions.html.tmpl", gin.H{
-		"Transactions": transactionList,
-		"Sum":          models.SumTransactions(transactions),
-	})
-}
-
-func DeleteTransaction(c *gin.Context, database *gorm.DB) {
-	userInfo, err := getUserInfo(c)
-	if err != nil {
-		c.JSON(401, gin.H{"error": err.Error()})
 		return
 	}
 
 	var transaction models.Transaction
-	if err := database.Where("id = ?", c.Param("id")).First(&transaction).Error; err != nil {
+	if err := database.Where("id = ?", ctx.Param("id")).First(&transaction).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(404, gin.H{"error": "transaction not found"})
+			ctx.JSON(404, gin.H{"error": "transaction not found"})
 
 			return
 		} else {
-			c.JSON(500, gin.H{"error": "failed to fetch transaction"})
+			ctx.JSON(500, gin.H{"error": "failed to fetch transaction"})
 
 			return
 		}
@@ -194,24 +203,24 @@ func DeleteTransaction(c *gin.Context, database *gorm.DB) {
 	// Check if the user owns the transaction
 	var user models.User
 	if err := database.Where("id = ?", transaction.UserID).First(&user).Error; err != nil {
-		c.JSON(500, gin.H{"error": "failed to fetch user"})
+		ctx.JSON(500, gin.H{"error": "failed to fetch user"})
 
 		return
 	}
 
-	if user.Email != userInfo.Email {
-		c.JSON(403, gin.H{"error": "forbidden"})
+	if user.Username != tailscaleUser.Login {
+		ctx.JSON(403, gin.H{"error": "forbidden"})
 
 		return
 	}
 
 	// Delete the transaction
 	if err := database.Delete(&transaction).Error; err != nil {
-		c.JSON(500, gin.H{"error": "failed to delete transaction"})
+		ctx.JSON(500, gin.H{"error": "failed to delete transaction"})
 
 		return
 	}
 
-	c.Header("HX-Trigger", "reload-transactions")
-	c.Status(http.StatusNoContent)
+	ctx.Header("HX-Trigger", "reload-transactions")
+	ctx.Status(http.StatusNoContent)
 }

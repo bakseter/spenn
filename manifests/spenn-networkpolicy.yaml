@@ -1,0 +1,73 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: spenn
+  namespace: spenn
+spec:
+  endpointSelector:
+    matchLabels:
+      app: spenn
+
+  ingress:
+    # Allow ingress from Tailscale
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: tailscale
+            tailscale.com/parent-resource: spenn
+            tailscale.com/parent-resource-ns: spenn
+      toPorts:
+        - rules:
+            http: []
+          ports:
+            - port: '8080'
+              protocol: TCP
+
+    # Allow ingress from Prometheus for metrics scraping
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+            app.kubernetes.io/name: prometheus
+      toPorts:
+        - rules:
+            http:
+              - path: '/metrics'
+                method: 'GET'
+          ports:
+            - port: '8080'
+              protocol: TCP
+
+  egress:
+    # Allow egress to kube-dns (needed for DNS resolution)
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - rules:
+            http: []
+          ports:
+            - port: '53'
+              protocol: TCP
+            - port: '53'
+              protocol: UDP
+
+    # Allow egress to database
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: spenn-database
+      toPorts:
+        - rules:
+            http: []
+          ports:
+            - port: '5432'
+              protocol: TCP
+
+    # Allow sending logs via OTLP to Grafana Alloy
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+            app.kubernetes.io/name: alloy
+      toPorts:
+        - ports:
+            - port: '4317'
+              protocol: TCP
