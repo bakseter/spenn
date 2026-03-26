@@ -9,10 +9,10 @@ spec:
       app.kubernetes.io/instance: spenn-database
 
   ingress:
-    # Allow traffic from backend
+    # Allow traffic from spenn
     - fromEndpoints:
         - matchLabels:
-            app: backend
+            app: spenn
       toPorts:
         - rules:
             http: []
