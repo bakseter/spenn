@@ -125,43 +125,45 @@
                 <section
                     class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
                 >
-                    <div
-                        class="mb-6 inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1"
-                    >
-                        <button
-                            class="filter-btn rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white transition"
-                            hx-get="/api/transactions"
-                            hx-target="#transactions"
-                            hx-swap="innerHTML"
-                        >
-                            Alle
-                        </button>
+                    <div id="view-controls" data-scope="" data-filter="" class="space-y-3 mb-6">
+                        <div class="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+                            <button
+                                class="scope-btn rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white transition"
+                                data-scope=""
+                            >
+                                Mine
+                            </button>
+                            <button
+                                class="scope-btn rounded-lg px-4 py-1.5 text-sm font-medium text-slate-700 transition"
+                                data-scope="/all"
+                            >
+                                Alle
+                            </button>
+                        </div>
 
-                        <button
-                            class="filter-btn rounded-lg px-4 py-1.5 text-sm font-medium text-slate-700 transition"
-                            hx-get="/api/transactions?shared=on"
-                            hx-target="#transactions"
-                            hx-swap="innerHTML"
-                        >
-                            Felles
-                        </button>
-
-                        <button
-                            class="filter-btn rounded-lg px-4 py-1.5 text-sm font-medium text-slate-700 transition"
-                            hx-get="/api/transactions?shared=off"
-                            hx-target="#transactions"
-                            hx-swap="innerHTML"
-                        >
-                            Privat
-                        </button>
+                        <div class="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+                            <button
+                                class="filter-btn rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white transition"
+                                data-filter=""
+                            >
+                                Alle
+                            </button>
+                            <button
+                                class="filter-btn rounded-lg px-4 py-1.5 text-sm font-medium text-slate-700 transition"
+                                data-filter="on"
+                            >
+                                Felles
+                            </button>
+                            <button
+                                class="filter-btn rounded-lg px-4 py-1.5 text-sm font-medium text-slate-700 transition"
+                                data-filter="off"
+                            >
+                                Privat
+                            </button>
+                        </div>
                     </div>
-                    <div
-                        id="transactions"
-                        hx-get="/api/transactions"
-                        hx-trigger="load, reload-transactions from:body"
-                        hx-target="#transactions"
-                        hx-swap="innerHTML"
-                    >
+
+                    <div id="transactions" hx-get="/api/transactions" hx-trigger="load" hx-target="#transactions" hx-swap="innerHTML">
                         <!-- Transactions will be loaded here -->
                     </div>
                 </section>
@@ -169,18 +171,42 @@
         </main>
 
         <script>
-            document.addEventListener("click", (e) => {
-                const btn = e.target.closest(".filter-btn");
-                if (!btn) return;
+            function loadTransactions() {
+                const controls = document.getElementById("view-controls");
+                const scope = controls.dataset.scope;
+                const filter = controls.dataset.filter;
+                const url = `/api/transactions${scope}${filter ? `?shared=${filter}` : ""}`;
+                htmx.ajax("GET", url, { target: "#transactions", swap: "innerHTML" });
+            }
 
-                document.querySelectorAll(".filter-btn").forEach((b) => {
+            function setActive(group, active) {
+                document.querySelectorAll(group).forEach((b) => {
                     b.classList.remove("bg-slate-900", "text-white");
                     b.classList.add("text-slate-700");
                 });
+                active.classList.add("bg-slate-900", "text-white");
+                active.classList.remove("text-slate-700");
+            }
 
-                btn.classList.add("bg-slate-900", "text-white");
-                btn.classList.remove("text-slate-700");
+            document.addEventListener("click", (e) => {
+                const scopeBtn = e.target.closest(".scope-btn");
+                const filterBtn = e.target.closest(".filter-btn");
+                const controls = document.getElementById("view-controls");
+
+                if (scopeBtn) {
+                    setActive(".scope-btn", scopeBtn);
+                    controls.dataset.scope = scopeBtn.dataset.scope;
+                    loadTransactions();
+                }
+
+                if (filterBtn) {
+                    setActive(".filter-btn", filterBtn);
+                    controls.dataset.filter = filterBtn.dataset.filter;
+                    loadTransactions();
+                }
             });
+
+            document.body.addEventListener("reload-transactions", loadTransactions);
         </script>
     </body>
 </html>

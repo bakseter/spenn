@@ -6,9 +6,6 @@ import (
 	"github.com/bakseter/spenn/pkg/api"
 	"github.com/bakseter/spenn/pkg/config"
 	"github.com/sirupsen/logrus"
-
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 func main() {
@@ -36,8 +33,3 @@ func main() {
 	}
 }
 
-func withDatabase(fn func(*gin.Context, *gorm.DB), database *gorm.DB) func(*gin.Context) {
-	return func(c *gin.Context) {
-		fn(c, database)
-	}
-}
