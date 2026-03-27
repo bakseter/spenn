@@ -13,7 +13,10 @@ type TransactionJSON struct {
 	ID          uint   `json:"id,omitempty"`
 	Amount      int    `json:"amount,string"`
 	Description string `json:"description"`
-	UserEmail   string `json:"user_email,omitempty"`
+	Login       string `json:"login,omitempty"`
+	Category    string `json:"category,omitempty"`
+	Shared      string `json:"shared,omitempty"`
+	Date        string `json:"date,omitempty"`
 }
 
 func TransactionRoutes(router *gin.RouterGroup, database *gorm.DB) {
@@ -32,10 +35,10 @@ func postTransaction(ctx *gin.Context, database *gorm.DB) {
 
 	// Check if user exists in database
 	var user models.User
-	if err := database.Where("username = ?", tailscaleUser.Login).First(&user).Error; err != nil {
+	if err := database.Where("login = ?", tailscaleUser.Login).First(&user).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			// Create user if not exists
-			user = models.User{Username: tailscaleUser.Login}
+			user = models.User{Login: tailscaleUser.Login}
 			if err := database.Create(&user).Error; err != nil {
 				ctx.JSON(500, gin.H{"error": "failed to create user"})
 
@@ -60,6 +63,8 @@ func postTransaction(ctx *gin.Context, database *gorm.DB) {
 		Amount:      transaction.Amount,
 		Description: transaction.Description,
 		UserID:      user.ID,
+		Category:    transaction.Category,
+		Shared:      transaction.Shared == "on",
 	}
 	if err := database.Create(&dbTransaction).Error; err != nil {
 		ctx.JSON(500, gin.H{"error": "failed to save transaction"})
@@ -81,7 +86,7 @@ func getAllTransactions(ctx *gin.Context, database *gorm.DB) {
 
 	// Get user from database
 	var user models.User
-	if err := database.Where("username = ?", tailscaleUser.Login).First(&user).Error; err != nil {
+	if err := database.Where("login = ?", tailscaleUser.Login).First(&user).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			ctx.Header("Content-Type", "text/html")
 			ctx.String(200, "<p class=\"italic\">Ingen transaksjoner</p>")
@@ -108,14 +113,29 @@ func getAllTransactions(ctx *gin.Context, database *gorm.DB) {
 		return
 	}
 
+	shared := ctx.Query("shared")
+
 	var transactionList []TransactionJSON
 	for _, transaction := range transactions {
-		transactionList = append(transactionList, TransactionJSON{
-			ID:          transaction.ID,
-			UserEmail:   tailscaleUser.Login,
-			Amount:      transaction.Amount,
-			Description: transaction.Description,
-		})
+		if (shared == "on" && transaction.Shared) ||
+			(shared == "off" && !transaction.Shared) ||
+			(shared == "") {
+			transactionList = append(transactionList, TransactionJSON{
+				ID:          transaction.ID,
+				Login:       tailscaleUser.Login,
+				Amount:      transaction.Amount,
+				Description: transaction.Description,
+				Category:    transaction.Category,
+				Shared: func() string {
+					if transaction.Shared {
+						return "on"
+					}
+
+					return "off"
+				}(),
+				Date: transaction.CreatedAt.Format("02.01.2006"),
+			})
+		}
 	}
 
 	slices.Reverse(transactionList)
@@ -208,7 +228,7 @@ func deleteTransaction(ctx *gin.Context, database *gorm.DB) {
 		return
 	}
 
-	if user.Username != tailscaleUser.Login {
+	if user.Login != tailscaleUser.Login {
 		ctx.JSON(403, gin.H{"error": "forbidden"})
 
 		return

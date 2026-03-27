@@ -4,12 +4,12 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-        <script
-            src="https://unpkg.com/htmx.org@2.0.4"
-            integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
-            crossorigin="anonymous"
-        ></script>
-        <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+        <!-- https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js -->
+        <script src="./htmx.min.js"></script>
+
+        <!-- https://unpkg.com/htmx-ext-json-enc@2.0.1/json-enc.js -->
+        <script src="./json-enc.js"></script>
+
         <script src="https://cdn.tailwindcss.com"></script>
 
         <title>Spenn</title>
@@ -21,9 +21,6 @@
                 <h1 class="text-4xl font-bold tracking-tight text-slate-900">
                     Spenn
                 </h1>
-                <p class="mt-2 text-sm text-slate-500">
-                    Hold oversikt over transaksjonene dine.
-                </p>
             </div>
 
             <div class="grid gap-8 lg:grid-cols-[360px_1fr]">
@@ -48,13 +45,15 @@
                             <label
                                 class="mb-2 block text-sm font-medium text-slate-700"
                                 for="amount"
-                                >Beløp</label
                             >
+                                Beløp
+                            </label>
                             <input
                                 class="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 shadow-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-200"
                                 type="number"
                                 id="amount"
                                 name="amount"
+                                min="1"
                                 required
                             />
                         </div>
@@ -63,14 +62,54 @@
                             <label
                                 class="mb-2 block text-sm font-medium text-slate-700"
                                 for="description"
-                                >Beskrivelse</label
                             >
+                                Beskrivelse
+                            </label>
                             <input
                                 class="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 shadow-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-200"
                                 type="text"
                                 id="description"
                                 name="description"
                                 required
+                            />
+                        </div>
+
+                        <div>
+                            <label
+                                class="mb-2 block text-sm font-medium text-slate-700"
+                                for="category"
+                            >
+                                Kategori
+                            </label>
+
+                            <select
+                                id="category"
+                                name="category"
+                                class="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 shadow-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-200"
+                            >
+                                <option value="">Velg en kategori</option>
+                                <option value="Mat">Mat</option>
+                                <option value="Klær">Klær</option>
+                                <option value="Interiør">Interiør</option>
+                                <option value="Elektronikk">Elektronikk</option>
+                                <option value="Hobby">Hobby</option>
+                            </select>
+                        </div>
+
+                        <div
+                            class="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3"
+                        >
+                            <div>
+                                <p class="text-sm font-medium text-slate-700">
+                                    Felles
+                                </p>
+                            </div>
+
+                            <input
+                                type="checkbox"
+                                id="shared"
+                                name="shared"
+                                class="h-5 w-5 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
                             />
                         </div>
 
@@ -87,6 +126,36 @@
                     class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
                 >
                     <div
+                        class="mb-6 inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1"
+                    >
+                        <button
+                            class="filter-btn rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white transition"
+                            hx-get="/api/transactions"
+                            hx-target="#transactions"
+                            hx-swap="innerHTML"
+                        >
+                            Alle
+                        </button>
+
+                        <button
+                            class="filter-btn rounded-lg px-4 py-1.5 text-sm font-medium text-slate-700 transition"
+                            hx-get="/api/transactions?shared=on"
+                            hx-target="#transactions"
+                            hx-swap="innerHTML"
+                        >
+                            Felles
+                        </button>
+
+                        <button
+                            class="filter-btn rounded-lg px-4 py-1.5 text-sm font-medium text-slate-700 transition"
+                            hx-get="/api/transactions?shared=off"
+                            hx-target="#transactions"
+                            hx-swap="innerHTML"
+                        >
+                            Privat
+                        </button>
+                    </div>
+                    <div
                         id="transactions"
                         hx-get="/api/transactions"
                         hx-trigger="load, reload-transactions from:body"
@@ -98,5 +167,20 @@
                 </section>
             </div>
         </main>
+
+        <script>
+            document.addEventListener("click", (e) => {
+                const btn = e.target.closest(".filter-btn");
+                if (!btn) return;
+
+                document.querySelectorAll(".filter-btn").forEach((b) => {
+                    b.classList.remove("bg-slate-900", "text-white");
+                    b.classList.add("text-slate-700");
+                });
+
+                btn.classList.add("bg-slate-900", "text-white");
+                btn.classList.remove("text-slate-700");
+            });
+        </script>
     </body>
 </html>

@@ -9,6 +9,8 @@ type Transaction struct {
 	Amount      int
 	Description string
 	UserID      uint
+	Category    string
+	Shared      bool
 }
 
 func SumTransactions(transactions []Transaction) int {
